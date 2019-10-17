@@ -1,4 +1,6 @@
 
+[![Build Status](https://travis-ci.org/mhewedy/free-iptv.svg?branch=master)](https://travis-ci.org/mhewedy/free-iptv)
+
 To run we need to setup `tesseract` the ocr library:
 
 1. start with running:
