@@ -22,5 +22,6 @@ deploy: # deploy to docker hub
   provider: script
   script:
     -bash docker_push
+  skip_cleanup: true
   on:
     tags: true
