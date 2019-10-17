@@ -124,7 +124,7 @@ func Buy(email string, password string, cookie string) error {
 
 	// Buy the cart items
 	token, _, err := getTokenAndCookie("https://my.buy-iptv.com/cart.php?a=view",
-		"#order-cartx > div.accout-row > div.col-md-5.total-bar > form > input[type=hidden]", cookie)
+		"#frmCheckout > input[type=hidden]:nth-child(1)", cookie)
 	if err != nil {
 		return err
 	}
