@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/motemen/go-loghttp"
-	"github.com/otiai10/gosseract"
 	"io"
 	"io/ioutil"
 	"log"
@@ -41,7 +40,7 @@ func CreateEmail() (email string, err error) {
 	return ReadDOMElement("https://10minutemail.net/", "#fe_text", "value")
 }
 
-func DoRegister(email string) (cookie string, err error) {
+/*func DoRegister(email string) (cookie string, err error) {
 	log.Println("start registration using email: ", email)
 
 	token, cookie, err := readTokenAndCookie("https://my.buy-iptv.com/register.php",
@@ -64,7 +63,7 @@ func DoRegister(email string) (cookie string, err error) {
 	fmt.Println("cookie:", cookie)
 
 	return cookie, nil
-}
+}*/
 
 func register(email string, captcha string, token string, cookie string) (err error) {
 
@@ -189,7 +188,7 @@ func readTokenAndCookie(pageURL string, tokenSelector string) (token string, coo
 	return token, cookie, nil
 }
 
-func readCaptcha(cookie string) (captcha string, err error) {
+/*func readCaptcha(cookie string) (captcha string, err error) {
 
 	c := &http.Client{}
 	req, err := http.NewRequest("GET", "https://my.buy-iptv.com/includes/verifyimage.php", nil)
@@ -211,7 +210,7 @@ func readCaptcha(cookie string) (captcha string, err error) {
 	_ = client.SetImageFromBytes(bytes)
 	text, _ := client.Text()
 	return text[:5], nil
-}
+}*/
 
 func Call(method, url string, data url.Values, cookie string) (*http.Response, error) {
 	c := &http.Client{Transport: &loghttp.Transport{}}
