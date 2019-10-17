@@ -43,6 +43,9 @@ func register(email string, captcha string, csrfToken string, cookie string) (er
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(proxyURL),
 		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 	req, err := http.NewRequest("POST", "https://my.buy-iptv.com/register.php",
 		strings.NewReader(data.Encode()))
@@ -56,8 +59,9 @@ func register(email string, captcha string, csrfToken string, cookie string) (er
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("http status: " + resp.Status)
+	if resp.StatusCode != http.StatusFound {
+		return errors.New("unable to create account: " +
+			"http status should equal 302, however it is : " + resp.Status)
 	}
 	return nil
 }
