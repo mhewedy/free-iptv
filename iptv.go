@@ -18,13 +18,14 @@ import (
 
 const password = "p@ssw0rd"
 
-func CreateEmail() (email string, err error) {
-	return ReadDOMElement("https://10minutemail.net/", "#fe_text", "value")
-}
-
 func GetIPTVLink() (string, error) {
 
-	email, cookie, err := DoRegister()
+	email, err := CreateEmail()
+	if err != nil {
+		return "", err
+	}
+
+	cookie, err := DoRegister(email)
 	if err != nil {
 		return "", err
 	}
@@ -37,65 +38,33 @@ func GetIPTVLink() (string, error) {
 	return "<TODO>", nil
 }
 
-func DoRegister() (email string, cookie string, err error) {
-	log.Println("start registration")
+func CreateEmail() (email string, err error) {
+	return ReadDOMElement("https://10minutemail.net/", "#fe_text", "value")
+}
 
-	email, err = CreateEmail()
-	if err != nil {
-		return "", "", err
-	}
-	log.Println("register using using email: ", email)
+func DoRegister(email string) (cookie string, err error) {
+	log.Println("start registration using email: ", email)
 
 	token, cookie, err := readTokenAndCookie("https://my.buy-iptv.com/register.php",
 		"#frmCheckout > input[type=hidden]:nth-child(1)")
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
 	captcha, err := readCaptcha(cookie)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	log.Println("captcha value: ", captcha)
 
 	err = register(email, captcha, token, cookie)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
 	fmt.Println("cookie:", cookie)
 
-	return email, cookie, nil
-}
-
-func readTokenAndCookie(pageURL string, tokenSelector string) (token string, cookie string, err error) {
-
-	readToken := func(r io.Reader) (string, error) {
-		document, err := goquery.NewDocumentFromReader(r)
-		if err != nil {
-			return "", err
-		}
-		s := document.Find(tokenSelector)
-		token, exists := s.Eq(0).Attr("value")
-		if !exists {
-			return "", errors.New("unable to find token")
-		}
-		return token, nil
-	}
-
-	resp, err := http.Get(pageURL)
-	if err != nil {
-		return "", "", err
-	}
-	defer resp.Body.Close()
-
-	token, err = readToken(resp.Body.(io.Reader))
-	if err != nil {
-		return "", "", err
-	}
-
-	cookie = strings.Join(textproto.MIMEHeader(resp.Header)["Set-Cookie"], ";")
-	return token, cookie, nil
+	return cookie, nil
 }
 
 func register(email string, captcha string, token string, cookie string) (err error) {
@@ -140,30 +109,6 @@ func register(email string, captcha string, token string, cookie string) (err er
 		return errors.New("unable to create account")
 	}
 	return nil
-}
-
-func readCaptcha(cookie string) (captcha string, err error) {
-
-	c := &http.Client{}
-	req, err := http.NewRequest("GET", "https://my.buy-iptv.com/includes/verifyimage.php", nil)
-
-	req.Header.Set("Cookie", cookie)
-	resp, err := c.Do(req)
-
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	bytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	client := gosseract.NewClient()
-	defer client.Close()
-	_ = client.SetImageFromBytes(bytes)
-	text, _ := client.Text()
-	return text[:5], nil
 }
 
 func Buy(email string, password string, cookie string) error {
@@ -218,4 +163,58 @@ func Buy(email string, password string, cookie string) error {
 		return errors.New("unable to buy")
 	}
 	return nil
+}
+
+func readTokenAndCookie(pageURL string, tokenSelector string) (token string, cookie string, err error) {
+
+	readToken := func(r io.Reader) (string, error) {
+		document, err := goquery.NewDocumentFromReader(r)
+		if err != nil {
+			return "", err
+		}
+		s := document.Find(tokenSelector)
+		token, exists := s.Eq(0).Attr("value")
+		if !exists {
+			return "", errors.New("unable to find token")
+		}
+		return token, nil
+	}
+
+	resp, err := http.Get(pageURL)
+	if err != nil {
+		return "", "", err
+	}
+	defer resp.Body.Close()
+
+	token, err = readToken(resp.Body.(io.Reader))
+	if err != nil {
+		return "", "", err
+	}
+
+	cookie = strings.Join(textproto.MIMEHeader(resp.Header)["Set-Cookie"], ";")
+	return token, cookie, nil
+}
+
+func readCaptcha(cookie string) (captcha string, err error) {
+
+	c := &http.Client{}
+	req, err := http.NewRequest("GET", "https://my.buy-iptv.com/includes/verifyimage.php", nil)
+
+	req.Header.Set("Cookie", cookie)
+	resp, err := c.Do(req)
+
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	bytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	client := gosseract.NewClient()
+	defer client.Close()
+	_ = client.SetImageFromBytes(bytes)
+	text, _ := client.Text()
+	return text[:5], nil
 }
