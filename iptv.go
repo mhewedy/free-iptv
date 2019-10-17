@@ -37,12 +37,7 @@ func register(email string, captcha string, csrfToken string, cookie string) (er
 		"accepttos":    {"on"},
 		"companyname":  {},
 	}
-
-	proxyURL, err := url.Parse("http://localhost:80")
 	c := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyURL(proxyURL),
-		},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
