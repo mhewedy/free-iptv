@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/motemen/go-loghttp"
 	"github.com/otiai10/gosseract"
 	"io"
 	"io/ioutil"
@@ -45,7 +46,8 @@ func DoRegister() (email string, cookie string, err error) {
 	}
 	log.Println("register using using email: ", email)
 
-	token, cookie, err := readTokenAndCookie("https://my.buy-iptv.com/register.php")
+	token, cookie, err := readTokenAndCookie("https://my.buy-iptv.com/register.php",
+		"#frmCheckout > input[type=hidden]:nth-child(1)")
 	if err != nil {
 		return "", "", err
 	}
@@ -66,14 +68,14 @@ func DoRegister() (email string, cookie string, err error) {
 	return email, cookie, nil
 }
 
-func readTokenAndCookie(pageURL string) (token string, cookie string, err error) {
+func readTokenAndCookie(pageURL string, tokenSelector string) (token string, cookie string, err error) {
 
 	readToken := func(r io.Reader) (string, error) {
 		document, err := goquery.NewDocumentFromReader(r)
 		if err != nil {
 			return "", err
 		}
-		s := document.Find("#frmCheckout > input[type=hidden]:nth-child(1)")
+		s := document.Find(tokenSelector)
 		token, exists := s.Eq(0).Attr("value")
 		if !exists {
 			return "", errors.New("unable to find token")
@@ -119,7 +121,7 @@ func register(email string, captcha string, token string, cookie string) (err er
 		"accepttos":    {"on"},
 		"companyname":  {},
 	}
-	c := &http.Client{}
+	c := &http.Client{Transport: &loghttp.Transport{}}
 	req, err := http.NewRequest("POST", "https://my.buy-iptv.com/register.php",
 		strings.NewReader(data.Encode()))
 
@@ -134,6 +136,7 @@ func register(email string, captcha string, token string, cookie string) (err er
 
 	if resp.Request.URL.Path != "/clientarea.php" {
 		_ = resp.Header.Write(os.Stdout)
+
 		return errors.New("unable to create account")
 	}
 	return nil
@@ -167,7 +170,8 @@ func Buy(email string, password string, cookie string) error {
 
 	log.Println("start buying 1-day token")
 
-	token, _, err := readTokenAndCookie("https://my.buy-iptv.com/cart.php?a=view")
+	token, _, err := readTokenAndCookie("https://my.buy-iptv.com/cart.php?a=view",
+		"#order-cartx > div.accout-row > div.col-md-5.total-bar > form > input[type=hidden]")
 	if err != nil {
 		return err
 	}
@@ -196,7 +200,7 @@ func Buy(email string, password string, cookie string) error {
 		"accepttos":     {"on"},
 		"notes":         {""},
 	}
-	c := &http.Client{}
+	c := &http.Client{Transport: &loghttp.Transport{}}
 	req, err := http.NewRequest("POST", "https://my.buy-iptv.com/cart.php?a=checkout",
 		strings.NewReader(data.Encode()))
 
@@ -209,9 +213,9 @@ func Buy(email string, password string, cookie string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.Request.URL.Path != "/cart.php" && resp.Request.URL.RawQuery != "a=complete" {
-		return errors.New("unable to buy: " +
-			"the request redirected to  : " + resp.Request.RequestURI)
+	if resp.Request.URL.Path != "/cart.php" || resp.Request.URL.RawQuery != "a=complete" {
+		_ = resp.Header.Write(os.Stdout)
+		return errors.New("unable to buy")
 	}
 	return nil
 }
