@@ -68,8 +68,6 @@ func DoRegister(email string, password string) (cookie string, err error) {
 		return "", err
 	}
 
-	fmt.Println("cookie:", cookie)
-
 	return cookie, nil
 }
 
