@@ -105,9 +105,9 @@ func register(email string, password string, captcha string, token string, cooki
 	defer resp.Body.Close()
 
 	if resp.Request.URL.Path != "/clientarea.php" {
-		bytes, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println(string(bytes))
-		return errors.New("unable to create account")
+		//bytes, _ := ioutil.ReadAll(resp.Body)
+		//fmt.Println(string(bytes))
+		return errors.New("unable to create account, most probably because of captcha")
 	}
 	return nil
 }
@@ -117,7 +117,7 @@ func Buy(email string, password string, cookie string) error {
 	log.Println("start buying 1-day token")
 
 	// Add to cart
-	_, err := call("POST", "https://my.buy-iptv.com/cart.php?a=add&pid=88", nil, cookie)
+	_, err := call("GET", "https://my.buy-iptv.com/cart.php?a=add&pid=88", nil, cookie)
 	if err != nil {
 		return err
 	}
