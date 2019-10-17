@@ -11,15 +11,15 @@ func main() {
 	fmt.Println(email)
 	logError(err)
 
-	csrfToken, cookie, err := readCSRFTokenAndCookie()
-	fmt.Println(csrfToken, cookie)
+	token, cookie, err := readTokenAndCookie()
+	fmt.Println(token, cookie)
 	logError(err)
 
 	captcha, err := readCaptcha(cookie)
 	fmt.Println(captcha)
 	logError(err)
 
-	err = register(email, captcha, csrfToken, cookie)
+	err = register(email, captcha, token, cookie)
 	logError(err)
 }
 
