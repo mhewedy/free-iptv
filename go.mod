@@ -8,3 +8,5 @@ require (
 	github.com/otiai10/mint v1.3.0 // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
 )
+
+go 1.13

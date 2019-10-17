@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/motemen/go-loghttp"
+	"github.com/otiai10/gosseract"
 	"io"
 	"io/ioutil"
 	"log"
@@ -14,26 +15,28 @@ import (
 	"strings"
 )
 
-const password = "p@ssw0rd"
-
 func GetIPTVLink() (string, error) {
 
-	/*email, err := CreateEmail()
+	email, err := CreateEmail()
 	if err != nil {
 		return "", err
 	}
 
-	cookie, err := DoRegister(email)
-	if err != nil {
-		return "", err
-	}*/
-
-	//err := Buy("iwv768dsfsdf67@bcaoo.com", password, "__cfduid=db52826ecddfbd97bfcdcf6819cd5fdcb1571138367; _ga=GA1.2.1292017650.1571138375; WHMCSDBFJXoOgKRwo=ve91q8eni1rsq5late94td2m50; __utmc=138140716; _gid=GA1.2.130470252.1571228715; jv_enter_ts_N4d2yc5NB9=1571228746942; jv_visits_count_N4d2yc5NB9=2; _gac_UA-83851201-1=1.1571297133.Cj0KCQjwoqDtBRD-ARIsAL4pviBnQuKY8gN4Tvf9sQEVv7njCbp8whQjwkKhEsoaBGhaq1VkIT6II9waAolUEALw_wcB; __utma=138140716.1292017650.1571138375.1571235713.1571297193.6; __utmz=138140716.1571297193.6.2.utmcsr=buy-iptv.com|utmccn=(referral)|utmcmd=referral|utmcct=/home/trial/; _gac_UA-83851201-1=1.1571297133.Cj0KCQjwoqDtBRD-ARIsAL4pviBnQuKY8gN4Tvf9sQEVv7njCbp8whQjwkKhEsoaBGhaq1VkIT6II9waAolUEALw_wcB; __utmt=1; jv_invitation_time_N4d2yc5NB9=1571297196017; jv_close_time_N4d2yc5NB9=1571297199743; jv_prechat2_N4d2yc5NB9=0%7C0%7C0%7C0%7C0; __utmb=138140716.6.9.1571297199738; jv_pages_count_N4d2yc5NB9=45")
-	link, err := GetBoughtLink("__cfduid=db52826ecddfbd97bfcdcf6819cd5fdcb1571138367; _ga=GA1.2.1292017650.1571138375; WHMCSDBFJXoOgKRwo=ve91q8eni1rsq5late94td2m50; __utmc=138140716; _gid=GA1.2.130470252.1571228715; jv_enter_ts_N4d2yc5NB9=1571228746942; jv_visits_count_N4d2yc5NB9=2; _gac_UA-83851201-1=1.1571297133.Cj0KCQjwoqDtBRD-ARIsAL4pviBnQuKY8gN4Tvf9sQEVv7njCbp8whQjwkKhEsoaBGhaq1VkIT6II9waAolUEALw_wcB; __utma=138140716.1292017650.1571138375.1571235713.1571297193.6; __utmz=138140716.1571297193.6.2.utmcsr=buy-iptv.com|utmccn=(referral)|utmcmd=referral|utmcct=/home/trial/; _gac_UA-83851201-1=1.1571297133.Cj0KCQjwoqDtBRD-ARIsAL4pviBnQuKY8gN4Tvf9sQEVv7njCbp8whQjwkKhEsoaBGhaq1VkIT6II9waAolUEALw_wcB; __utmt=1; jv_invitation_time_N4d2yc5NB9=1571297196017; jv_close_time_N4d2yc5NB9=1571297199743; jv_prechat2_N4d2yc5NB9=0%7C0%7C0%7C0%7C0; __utmb=138140716.6.9.1571297199738; jv_pages_count_N4d2yc5NB9=45")
+	password := "p@ssw0rd"
+	cookie, err := DoRegister(email, password)
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(link)
+
+	err = Buy(email, password, cookie)
+	if err != nil {
+		return "", err
+	}
+
+	link, err := GetBoughtLink(cookie)
+	if err != nil {
+		return "", err
+	}
 
 	return link, nil
 }
@@ -42,7 +45,7 @@ func CreateEmail() (email string, err error) {
 	return ReadDOMElement("https://10minutemail.net/", "#fe_text", "value")
 }
 
-func DoRegister(email string) (cookie string, err error) {
+func DoRegister(email string, password string) (cookie string, err error) {
 	log.Println("start registration using email: ", email)
 
 	token, cookie, err := readTokenAndCookie("https://my.buy-iptv.com/register.php",
@@ -57,7 +60,7 @@ func DoRegister(email string) (cookie string, err error) {
 	}
 	log.Println("captcha value: ", captcha)
 
-	err = register(email, captcha, token, cookie)
+	err = register(email, password, captcha, token, cookie)
 	if err != nil {
 		return "", err
 	}
@@ -67,7 +70,7 @@ func DoRegister(email string) (cookie string, err error) {
 	return cookie, nil
 }
 
-func register(email string, captcha string, token string, cookie string) (err error) {
+func register(email string, password string, captcha string, token string, cookie string) (err error) {
 
 	data := url.Values{
 		"token":        {token},
@@ -266,13 +269,13 @@ func readCaptcha(cookie string) (captcha string, err error) {
 	if err != nil {
 		return "", err
 	}
-	/*
-		client := gosseract.NewClient()
-		defer client.Close()
-		_ = client.SetImageFromBytes(bytes)
-		text, _ := client.Text()
-		return text[:5], nil
-	*/
+
+	client := gosseract.NewClient()
+	defer client.Close()
+	_ = client.SetImageFromBytes(bytes)
+	text, _ := client.Text()
+	return text[:5], nil
+
 	return string(bytes), nil
 }
 
