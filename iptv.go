@@ -217,8 +217,6 @@ func GetM3ULink(cookie string) (string, error) {
 		return "", errors.New("unable to find m3u link")
 	}
 
-	fmt.Println("m3uLink", m3uLink)
-
 	return m3uLink, nil
 }
 
