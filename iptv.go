@@ -3,8 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/motemen/go-loghttp"
 	"github.com/otiai10/gosseract"
 	"io"
 	"io/ioutil"
@@ -33,7 +31,7 @@ func GetIPTVLink() (string, error) {
 		return "", err
 	}
 
-	link, err := GetM3ULink(cookie)
+	link, err := GetBoughtM3ULink(cookie)
 	if err != nil {
 		return "", err
 	}
@@ -42,13 +40,19 @@ func GetIPTVLink() (string, error) {
 }
 
 func CreateEmail() (email string, err error) {
-	return ReadDOMElement("https://10minutemail.net/", "#fe_text", "value")
+	resp, err := http.Get("https://10minutemail.net/")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	return getHTMLElement(resp.Body, "#fe_text", "value")
 }
 
 func DoRegister(email string, password string) (cookie string, err error) {
 	log.Println("start registration using email: ", email)
 
-	token, cookie, err := readTokenAndCookie("https://my.buy-iptv.com/register.php",
+	token, cookie, err := getTokenAndCookie("https://my.buy-iptv.com/register.php",
 		"#frmCheckout > input[type=hidden]:nth-child(1)", "")
 	if err != nil {
 		return "", err
@@ -119,7 +123,7 @@ func Buy(email string, password string, cookie string) error {
 	}
 
 	// Buy the cart items
-	token, _, err := readTokenAndCookie("https://my.buy-iptv.com/cart.php?a=view",
+	token, _, err := getTokenAndCookie("https://my.buy-iptv.com/cart.php?a=view",
 		"#order-cartx > div.accout-row > div.col-md-5.total-bar > form > input[type=hidden]", cookie)
 	if err != nil {
 		return err
@@ -163,7 +167,7 @@ func Buy(email string, password string, cookie string) error {
 	return nil
 }
 
-func GetM3ULink(cookie string) (string, error) {
+func GetBoughtM3ULink(cookie string) (string, error) {
 
 	// Get manage link
 	resp, err := call("GET", "https://my.buy-iptv.com/clientarea.php", nil, cookie)
@@ -172,19 +176,15 @@ func GetM3ULink(cookie string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	document, err := goquery.NewDocumentFromReader(resp.Body)
+	manageLink, err := getHTMLElement(resp.Body,
+		"#products > div:nth-child(1) > div > div.activ-right > ul > li.manag > a", "href")
 	if err != nil {
 		return "", err
 	}
-	s := document.Find("#products > div:nth-child(1) > div > div.activ-right > ul > li.manag > a")
-	manageLink, exists := s.Eq(0).Attr("href")
-	if !exists {
-		return "", errors.New("unable to find box link")
-	}
-	manageLink = "https://my.buy-iptv.com" + manageLink
 
 	// Get details link
-	token, _, err := readTokenAndCookie(manageLink,
+	manageLink = "https://my.buy-iptv.com" + manageLink
+	token, _, err := getTokenAndCookie(manageLink,
 		"#tabChangepw > div > div > div.files-body > form > input[type=hidden]:nth-child(1)", cookie)
 	if err != nil {
 		return "", err
@@ -207,33 +207,15 @@ func GetM3ULink(cookie string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	document, err = goquery.NewDocumentFromReader(resp.Body)
+	m3uLink, err := getHTMLElement(resp.Body, "#m3ulinks", "value")
 	if err != nil {
 		return "", err
-	}
-	s = document.Find("#m3ulinks")
-	m3uLink, exists := s.Eq(0).Attr("value")
-	if !exists {
-		return "", errors.New("unable to find m3u link")
 	}
 
 	return m3uLink, nil
 }
 
-func readTokenAndCookie(pageURL string, tokenSelector string, inCookie string) (token string, cookie string, err error) {
-
-	readToken := func(r io.Reader) (string, error) {
-		document, err := goquery.NewDocumentFromReader(r)
-		if err != nil {
-			return "", err
-		}
-		s := document.Find(tokenSelector)
-		token, exists := s.Eq(0).Attr("value")
-		if !exists {
-			return "", errors.New("unable to find token")
-		}
-		return token, nil
-	}
+func getTokenAndCookie(pageURL string, tokenSelector string, inCookie string) (token string, cookie string, err error) {
 
 	resp, err := call("GET", pageURL, nil, inCookie)
 	if err != nil {
@@ -241,12 +223,12 @@ func readTokenAndCookie(pageURL string, tokenSelector string, inCookie string) (
 	}
 	defer resp.Body.Close()
 
-	token, err = readToken(resp.Body.(io.Reader))
+	token, err = getHTMLElement(resp.Body.(io.Reader), tokenSelector, "value")
 	if err != nil {
 		return "", "", err
 	}
 
-	cookie = strings.Join(textproto.MIMEHeader(resp.Header)["Set-Cookie"], ";")
+	cookie = strings.Join(textproto.MIMEHeader(resp.Header)["Set-Cookie"], "; ")
 	return token, cookie, nil
 }
 
@@ -275,22 +257,4 @@ func readCaptcha(cookie string) (captcha string, err error) {
 	return text[:5], nil
 
 	return string(bytes), nil
-}
-
-func call(method, url string, data url.Values, cookie string) (*http.Response, error) {
-	c := &http.Client{Transport: &loghttp.Transport{}}
-
-	req, err := http.NewRequest(method, url, strings.NewReader(data.Encode()))
-	if err != nil {
-		return nil, err
-	}
-	defer req.Body.Close()
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Cookie", cookie)
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
 }
