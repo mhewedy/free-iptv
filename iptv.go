@@ -52,8 +52,7 @@ func CreateEmail() (email string, err error) {
 func DoRegister(email string, password string) (cookie string, err error) {
 	log.Println("start registration using email: ", email)
 
-	token, cookie, err := getTokenAndCookie("https://my.buy-iptv.com/register.php",
-		"#frmCheckout > input[type=hidden]:nth-child(1)", "")
+	token, cookie, err := getTokenAndCookie("https://my.buy-iptv.com/register.php", "")
 	if err != nil {
 		return "", err
 	}
@@ -123,8 +122,7 @@ func Buy(email string, password string, cookie string) error {
 	}
 
 	// Buy the cart items
-	token, _, err := getTokenAndCookie("https://my.buy-iptv.com/cart.php?a=view",
-		"#frmCheckout > input[type=hidden]:nth-child(1)", cookie)
+	token, _, err := getTokenAndCookie("https://my.buy-iptv.com/cart.php?a=view", cookie)
 	if err != nil {
 		return err
 	}
@@ -184,8 +182,7 @@ func GetBoughtM3ULink(cookie string) (string, error) {
 
 	// Get details link
 	manageLink = "https://my.buy-iptv.com" + manageLink
-	token, _, err := getTokenAndCookie(manageLink,
-		"#tabChangepw > div > div > div.files-body > form > input[type=hidden]:nth-child(1)", cookie)
+	token, _, err := getTokenAndCookie(manageLink, cookie)
 	if err != nil {
 		return "", err
 	}
@@ -215,7 +212,7 @@ func GetBoughtM3ULink(cookie string) (string, error) {
 	return m3uLink, nil
 }
 
-func getTokenAndCookie(pageURL string, tokenSelector string, inCookie string) (token string, cookie string, err error) {
+func getTokenAndCookie(pageURL string, inCookie string) (token string, cookie string, err error) {
 
 	resp, err := call("GET", pageURL, nil, inCookie)
 	if err != nil {
@@ -223,7 +220,7 @@ func getTokenAndCookie(pageURL string, tokenSelector string, inCookie string) (t
 	}
 	defer resp.Body.Close()
 
-	token, err = getHTMLElement(resp.Body.(io.Reader), tokenSelector, "value")
+	token, err = getHTMLElement(resp.Body.(io.Reader), "form > input[type=hidden]:nth-child(1)", "value")
 	if err != nil {
 		return "", "", err
 	}
