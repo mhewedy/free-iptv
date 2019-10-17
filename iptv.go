@@ -16,8 +16,8 @@ const password = "p@ssw0rd"
 
 func readTokenAndCookie() (token string, cookie string, err error) {
 
-	readToken := func(r *io.Reader) (string, error) {
-		document, err := goquery.NewDocumentFromReader(*r)
+	readToken := func(r io.Reader) (string, error) {
+		document, err := goquery.NewDocumentFromReader(r)
 		if err != nil {
 			return "", err
 		}
@@ -35,8 +35,7 @@ func readTokenAndCookie() (token string, cookie string, err error) {
 	}
 	defer resp.Body.Close()
 
-	reader := resp.Body.(io.Reader)
-	token, err = readToken(&reader)
+	token, err = readToken(resp.Body.(io.Reader))
 	if err != nil {
 		return "", "", err
 	}
