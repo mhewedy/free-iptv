@@ -187,7 +187,7 @@ func GetBoughtM3ULink(cookie string) (string, error) {
 		return "", err
 	}
 
-	parse, err := url.Parse(manageLink)
+	u, err := url.Parse(manageLink)
 	if err != nil {
 		return "", err
 	}
@@ -196,7 +196,7 @@ func GetBoughtM3ULink(cookie string) (string, error) {
 	resp, err = call("POST", "https://my.buy-iptv.com/clientarea.php?action=productdetails", url.Values{
 		"token":        {token},
 		"customAction": {"manage"},
-		"id":           {parse.Query().Get("id")},
+		"id":           {u.Query().Get("id")},
 	}, cookie)
 
 	if err != nil {
@@ -209,7 +209,15 @@ func GetBoughtM3ULink(cookie string) (string, error) {
 		return "", err
 	}
 
-	return m3uLink, nil
+	u, err = url.Parse(m3uLink)
+	if err != nil {
+		return "", err
+	}
+	q := u.Query()
+	q.Set("type", "m3u_plus")
+	u.RawQuery = q.Encode()
+
+	return u.String(), nil
 }
 
 func getTokenAndCookie(pageURL string, inCookie string) (token string, cookie string, err error) {

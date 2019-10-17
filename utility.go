@@ -6,7 +6,6 @@ import (
 	"github.com/motemen/go-loghttp"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -21,10 +20,7 @@ func getHTMLElement(body io.Reader, selector string, attr string) (string, error
 	s := document.Find(selector)
 	el, exists := s.Eq(0).Attr(attr)
 	if !exists {
-		bytes, err := ioutil.ReadAll(body)
-		if err != nil {
-			log.Println(err)
-		}
+		bytes, _ := ioutil.ReadAll(body)
 		return "", errors.New("unable to find element: " + selector + " in doc: " + string(bytes))
 	}
 	return el, nil
