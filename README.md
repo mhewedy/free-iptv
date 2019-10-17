@@ -1,17 +1,16 @@
 
 To run we need to setup `tesseract` the ocr library:
-https://github.com/otiai10/gosseract/blob/master/Dockerfile
 
 1. start with running:
 ```bash
 docker run --rm -it -v $(pwd):/work golang:latest
 ```
-2. install `tesseract` as in the Dockerfile above:
+2. then inside the container run the commands from the dockerfile:
 ```bash
-apt-get install -y -qq libtesseract-dev libleptonica-dev
+https://github.com/otiai10/gosseract/blob/master/Dockerfile
 ```
 3. inside the container build and run the app:
 ```bash 
 cd /work
-go run main.go
+go run *.go
 ```
