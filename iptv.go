@@ -45,16 +45,18 @@ func DoRegister() (string, error) {
 		return "", err
 	}
 	log.Println("register using using email: ", email)
+
 	token, cookie, err := readTokenAndCookie("https://my.buy-iptv.com/register.php",
 		"#frmCheckout > input[type=hidden]:nth-child(1)")
 	if err != nil {
 		return "", err
 	}
+
 	captcha, err := readCaptcha(cookie)
 	if err != nil {
 		return "", err
 	}
-	log.Println("captcha read as: ", captcha)
+	log.Println("captcha value: ", captcha)
 
 	err = register(email, captcha, token, cookie)
 	if err != nil {
@@ -136,7 +138,6 @@ func register(email string, captcha string, token string, cookie string) (err er
 		return errors.New("unable to create account: " +
 			"the request redirected to  : " + resp.Request.RequestURI)
 	}
-
 	return nil
 }
 
