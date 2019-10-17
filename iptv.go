@@ -257,5 +257,9 @@ func readCaptcha(cookie string) (captcha string, err error) {
 	defer client.Close()
 	_ = client.SetImageFromBytes(bytes)
 	text, _ := client.Text()
-	return text[:5], nil
+	if len(text) > 5 {
+		return text[:5], nil
+	} else {
+		return text, nil
+	}
 }
