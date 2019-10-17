@@ -11,6 +11,8 @@ before_install:
   - sudo apt-get install -y -qq libtesseract-dev libleptonica-dev
   - TESSDATA_PREFIX=/usr/share/tesseract-ocr
   - sudo apt-get install -y -qq tesseract-ocr-eng
+install:
+  - go build
 
 # before we deploy, we go build for all operating systems we would like to support
 #before_deploy:
