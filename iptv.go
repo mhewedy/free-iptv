@@ -252,6 +252,4 @@ func readCaptcha(cookie string) (captcha string, err error) {
 	_ = client.SetImageFromBytes(bytes)
 	text, _ := client.Text()
 	return text[:5], nil
-
-	return string(bytes), nil
 }
