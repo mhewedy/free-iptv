@@ -1,6 +1,7 @@
-dist: xenial
-
 language: go
+
+services:
+  - docker
 
 go:
   - 1.12.x
@@ -12,15 +13,14 @@ before_install:
   - sudo apt-get install -y -qq tesseract-ocr-eng
 
 # before we deploy, we go build for all operating systems we would like to support
-before_deploy:
-  - mkdir -p release
-  - "GOOS=linux GOARCH=amd64 go build -o release/freeiptv"
-
-deploy:
-  provider: releases
-  api_key: ${GITHUB_API_KEY}
-  file:
-    - "release/freeiptv"
-  skip_cleanup: true
-  on:
-    tags: true
+#before_deploy:
+#  - ls
+#
+#deploy: # deploy to docker hub
+#  provider: releases
+#  api_key: ${GITHUB_API_KEY}
+#  file:
+#    - "release/freeiptv"
+#  skip_cleanup: true
+#  on:
+#    tags: true
