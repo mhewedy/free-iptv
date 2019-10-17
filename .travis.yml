@@ -11,7 +11,7 @@ before_install:
   - sudo apt-get install -y -qq libtesseract-dev libleptonica-dev
   - TESSDATA_PREFIX=/usr/share/tesseract-ocr
   - sudo apt-get install -y -qq tesseract-ocr-eng
-  - GO111MODULE=on go mod tidy
+  - GO111MODULE=on go mod vendor
 install:
   - go build
 
