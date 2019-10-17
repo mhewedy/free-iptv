@@ -1,7 +1,7 @@
 language: go
-#
-#services:
-#  - docker
+
+services:
+  - docker
 
 go:
   - 1.12.x
@@ -15,15 +15,12 @@ before_install:
 install:
   - go build
 
-# before we deploy, we go build for all operating systems we would like to support
-#before_deploy:
-#  - ls
+before_deploy:
+  - docker build -t mhewedy/freeiptv .
 #
-#deploy: # deploy to docker hub
-#  provider: releases
-#  api_key: ${GITHUB_API_KEY}
-#  file:
-#    - "release/freeiptv"
-#  skip_cleanup: true
-#  on:
-#    tags: true
+deploy: # deploy to docker hub
+  provider: script
+  script:
+    -bash docker_push
+  on:
+    tags: true
