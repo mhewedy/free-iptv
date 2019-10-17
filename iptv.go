@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/otiai10/gosseract"
 	"io"
@@ -48,6 +47,7 @@ func register(email string, captcha string, csrfToken string, cookie string) (er
 	req, err := http.NewRequest("POST", "https://my.buy-iptv.com/register.php",
 		strings.NewReader(data.Encode()))
 
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Cookie", cookie)
 	resp, err := c.Do(req)
 
@@ -56,13 +56,9 @@ func register(email string, captcha string, csrfToken string, cookie string) (er
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusFound {
+	if resp.StatusCode != http.StatusOK {
 		return errors.New("http status: " + resp.Status)
 	}
-
-	bytes, err := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(bytes))
-
 	return nil
 }
 
