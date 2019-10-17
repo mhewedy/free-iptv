@@ -33,7 +33,7 @@ func GetIPTVLink() (string, error) {
 		return "", err
 	}
 
-	link, err := GetBoughtLink(cookie)
+	link, err := GetM3ULink(cookie)
 	if err != nil {
 		return "", err
 	}
@@ -163,7 +163,7 @@ func Buy(email string, password string, cookie string) error {
 	return nil
 }
 
-func GetBoughtLink(cookie string) (string, error) {
+func GetM3ULink(cookie string) (string, error) {
 
 	// Get manage link
 	resp, err := call("GET", "https://my.buy-iptv.com/clientarea.php", nil, cookie)
