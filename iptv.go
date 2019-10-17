@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/textproto"
 	"net/url"
-	"os"
 	"strings"
 )
 
@@ -20,7 +19,7 @@ const password = "p@ssw0rd"
 
 func GetIPTVLink() (string, error) {
 
-	email, err := CreateEmail()
+	/*email, err := CreateEmail()
 	if err != nil {
 		return "", err
 	}
@@ -28,9 +27,9 @@ func GetIPTVLink() (string, error) {
 	cookie, err := DoRegister(email)
 	if err != nil {
 		return "", err
-	}
+	}*/
 
-	err = Buy(email, password, cookie)
+	err := Buy("iwv768dsfsdf67@bcaoo.com", password, "__cfduid=db52826ecddfbd97bfcdcf6819cd5fdcb1571138367; _ga=GA1.2.1292017650.1571138375; WHMCSDBFJXoOgKRwo=ve91q8eni1rsq5late94td2m50; __utmc=138140716; _gid=GA1.2.130470252.1571228715; jv_enter_ts_N4d2yc5NB9=1571228746942; jv_visits_count_N4d2yc5NB9=2; _gac_UA-83851201-1=1.1571297133.Cj0KCQjwoqDtBRD-ARIsAL4pviBnQuKY8gN4Tvf9sQEVv7njCbp8whQjwkKhEsoaBGhaq1VkIT6II9waAolUEALw_wcB; __utma=138140716.1292017650.1571138375.1571235713.1571297193.6; __utmz=138140716.1571297193.6.2.utmcsr=buy-iptv.com|utmccn=(referral)|utmcmd=referral|utmcct=/home/trial/; _gac_UA-83851201-1=1.1571297133.Cj0KCQjwoqDtBRD-ARIsAL4pviBnQuKY8gN4Tvf9sQEVv7njCbp8whQjwkKhEsoaBGhaq1VkIT6II9waAolUEALw_wcB; __utmt=1; jv_invitation_time_N4d2yc5NB9=1571297196017; jv_close_time_N4d2yc5NB9=1571297199743; jv_prechat2_N4d2yc5NB9=0%7C0%7C0%7C0%7C0; __utmb=138140716.6.9.1571297199738; jv_pages_count_N4d2yc5NB9=45")
 	if err != nil {
 		return "", err
 	}
@@ -90,22 +89,16 @@ func register(email string, captcha string, token string, cookie string) (err er
 		"accepttos":    {"on"},
 		"companyname":  {},
 	}
-	c := &http.Client{Transport: &loghttp.Transport{}}
-	req, err := http.NewRequest("POST", "https://my.buy-iptv.com/register.php",
-		strings.NewReader(data.Encode()))
 
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Cookie", cookie)
-	resp, err := c.Do(req)
-
+	resp, err := Call("POST", "https://my.buy-iptv.com/register.php", data, cookie)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.Request.URL.Path != "/clientarea.php" {
-		_ = resp.Header.Write(os.Stdout)
-
+		bytes, _ := ioutil.ReadAll(resp.Body)
+		fmt.Println(string(bytes))
 		return errors.New("unable to create account")
 	}
 	return nil
@@ -115,12 +108,18 @@ func Buy(email string, password string, cookie string) error {
 
 	log.Println("start buying 1-day token")
 
+	// Add to cart
+	_, err := Call("POST", "https://my.buy-iptv.com/cart.php?a=add&pid=88", nil, cookie)
+	if err != nil {
+		return err
+	}
+
+	// Buy the cart items
 	token, _, err := readTokenAndCookie("https://my.buy-iptv.com/cart.php?a=view",
 		"#order-cartx > div.accout-row > div.col-md-5.total-bar > form > input[type=hidden]")
 	if err != nil {
 		return err
 	}
-
 	data := url.Values{
 		"token":         {token},
 		"submit":        {"true"},
@@ -145,21 +144,16 @@ func Buy(email string, password string, cookie string) error {
 		"accepttos":     {"on"},
 		"notes":         {""},
 	}
-	c := &http.Client{Transport: &loghttp.Transport{}}
-	req, err := http.NewRequest("POST", "https://my.buy-iptv.com/cart.php?a=checkout",
-		strings.NewReader(data.Encode()))
 
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Cookie", cookie)
-	resp, err := c.Do(req)
-
+	resp, err := Call("POST", "https://my.buy-iptv.com/cart.php?a=checkout", data, cookie)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.Request.URL.Path != "/cart.php" || resp.Request.URL.RawQuery != "a=complete" {
-		_ = resp.Header.Write(os.Stdout)
+		bytes, _ := ioutil.ReadAll(resp.Body)
+		fmt.Println(string(bytes))
 		return errors.New("unable to buy")
 	}
 	return nil
@@ -217,4 +211,22 @@ func readCaptcha(cookie string) (captcha string, err error) {
 	_ = client.SetImageFromBytes(bytes)
 	text, _ := client.Text()
 	return text[:5], nil
+}
+
+func Call(method, url string, data url.Values, cookie string) (*http.Response, error) {
+	c := &http.Client{Transport: &loghttp.Transport{}}
+
+	req, err := http.NewRequest(method, url, strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	defer req.Body.Close()
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Cookie", cookie)
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
