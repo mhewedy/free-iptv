@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/textproto"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -22,60 +23,57 @@ func CreateEmail() (email string, err error) {
 
 func GetIPTVLink() (string, error) {
 
-	_, err := DoRegister()
+	email, cookie, err := DoRegister()
 	if err != nil {
 		return "", err
 	}
 
-	/*cookie, err := DoLogin(email, password)
+	err = Buy(email, password, cookie)
 	if err != nil {
 		return "", err
 	}
-
-	fmt.Println("Login cookie:", cookie)*/
 
 	return "<TODO>", nil
 }
 
-func DoRegister() (string, error) {
+func DoRegister() (email string, cookie string, err error) {
 	log.Println("start registration")
 
-	email, err := CreateEmail()
+	email, err = CreateEmail()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	log.Println("register using using email: ", email)
 
-	token, cookie, err := readTokenAndCookie("https://my.buy-iptv.com/register.php",
-		"#frmCheckout > input[type=hidden]:nth-child(1)")
+	token, cookie, err := readTokenAndCookie("https://my.buy-iptv.com/register.php")
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	captcha, err := readCaptcha(cookie)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	log.Println("captcha value: ", captcha)
 
 	err = register(email, captcha, token, cookie)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	fmt.Println("cookie:", cookie)
 
-	return email, nil
+	return email, cookie, nil
 }
 
-func readTokenAndCookie(pageURL string, tokenSelector string) (token string, cookie string, err error) {
+func readTokenAndCookie(pageURL string) (token string, cookie string, err error) {
 
 	readToken := func(r io.Reader) (string, error) {
 		document, err := goquery.NewDocumentFromReader(r)
 		if err != nil {
 			return "", err
 		}
-		s := document.Find(tokenSelector)
+		s := document.Find("#frmCheckout > input[type=hidden]:nth-child(1)")
 		token, exists := s.Eq(0).Attr("value")
 		if !exists {
 			return "", errors.New("unable to find token")
@@ -135,8 +133,8 @@ func register(email string, captcha string, token string, cookie string) (err er
 	defer resp.Body.Close()
 
 	if resp.Request.URL.Path != "/clientarea.php" {
-		return errors.New("unable to create account: " +
-			"the request redirected to  : " + resp.Request.RequestURI)
+		_ = resp.Header.Write(os.Stdout)
+		return errors.New("unable to create account")
 	}
 	return nil
 }
@@ -163,4 +161,57 @@ func readCaptcha(cookie string) (captcha string, err error) {
 	_ = client.SetImageFromBytes(bytes)
 	text, _ := client.Text()
 	return text[:5], nil
+}
+
+func Buy(email string, password string, cookie string) error {
+
+	log.Println("start buying 1-day token")
+
+	token, _, err := readTokenAndCookie("https://my.buy-iptv.com/cart.php?a=view")
+	if err != nil {
+		return err
+	}
+
+	data := url.Values{
+		"token":         {token},
+		"submit":        {"true"},
+		"custtype":      {"existing"},
+		"loginemail":    {email},
+		"loginpassword": {password},
+		"firstname":     {"Abbosa"},
+		"lastname":      {"fornasa"},
+		"email":         {email},
+		"phonenumber":   {"7185511111"},
+		"address1":      {"1th Avenue"},
+		"city":          {"Springfield Gardens"},
+		"state":         {"Alabama"},
+		"postcode":      {"12345"},
+		"paymentmethod": {"banktransfer"},
+		"ccinfo":        {"new"},
+		"cctype":        {"visa"},
+		"ccnumber":      {""},
+		"ccexpirydate":  {""},
+		"cccvv":         {""},
+		"cccvvexisting": {""},
+		"accepttos":     {"on"},
+		"notes":         {""},
+	}
+	c := &http.Client{}
+	req, err := http.NewRequest("POST", "https://my.buy-iptv.com/cart.php?a=checkout",
+		strings.NewReader(data.Encode()))
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Cookie", cookie)
+	resp, err := c.Do(req)
+
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.Request.URL.Path != "/cart.php" && resp.Request.URL.RawQuery != "a=complete" {
+		return errors.New("unable to buy: " +
+			"the request redirected to  : " + resp.Request.RequestURI)
+	}
+	return nil
 }
