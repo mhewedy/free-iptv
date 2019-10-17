@@ -1,0 +1,24 @@
+language: go
+
+go:
+  - 1.12.x
+
+before_script:
+  - apt-get update -qq
+  - apt-get install -y -qq libtesseract-dev libleptonica-dev
+  - TESSDATA_PREFIX=/usr/share/tesseract-ocr
+  - apt-get install -y -qq tesseract-ocr-eng
+
+# before we deploy, we go build for all operating systems we would like to support
+before_deploy:
+  - mkdir -p release
+  - "GOOS=linux GOARCH=amd64 go build -o release/freeiptv"
+
+deploy:
+  provider: releases
+  api_key: ${GITHUB_API_KEY}
+  file:
+    - "release/freeiptv"
+  skip_cleanup: true
+  on:
+    tags: true
