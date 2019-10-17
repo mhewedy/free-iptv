@@ -22,17 +22,17 @@ func CreateEmail() (email string, err error) {
 
 func GetIPTVLink() (string, error) {
 
-	email, err := DoRegister()
+	_, err := DoRegister()
 	if err != nil {
 		return "", err
 	}
 
-	cookie, err := DoLogin(email, password)
+	/*cookie, err := DoLogin(email, password)
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Println("Login cookie:", cookie)
+	fmt.Println("Login cookie:", cookie)*/
 
 	return "<TODO>", nil
 }
@@ -55,39 +55,25 @@ func DoRegister() (string, error) {
 		return "", err
 	}
 	log.Println("captcha read as: ", captcha)
+
 	err = register(email, captcha, token, cookie)
 	if err != nil {
 		return "", err
 	}
 
+	fmt.Println("cookie:", cookie)
+
 	return email, nil
 }
 
-func DoLogin(email string, password string) (string, error) {
-	log.Println("start login")
-
-	token, _, err := readTokenAndCookie("https://my.buy-iptv.com/clientarea.php",
-		"#page-wrapper > div > div > div.col-md-6.bg-box > form > input[type=hidden]")
-	if err != nil {
-		return "", err
-	}
-
-	cookie, err := login(email, password, token)
-	if err != nil {
-		return "", err
-	}
-
-	return cookie, nil
-}
-
-func readTokenAndCookie(page string, selector string) (token string, cookie string, err error) {
+func readTokenAndCookie(pageURL string, tokenSelector string) (token string, cookie string, err error) {
 
 	readToken := func(r io.Reader) (string, error) {
 		document, err := goquery.NewDocumentFromReader(r)
 		if err != nil {
 			return "", err
 		}
-		s := document.Find(selector)
+		s := document.Find(tokenSelector)
 		token, exists := s.Eq(0).Attr("value")
 		if !exists {
 			return "", errors.New("unable to find token")
@@ -95,7 +81,7 @@ func readTokenAndCookie(page string, selector string) (token string, cookie stri
 		return token, nil
 	}
 
-	resp, err := http.Get(page)
+	resp, err := http.Get(pageURL)
 	if err != nil {
 		return "", "", err
 	}
@@ -133,11 +119,7 @@ func register(email string, captcha string, token string, cookie string) (err er
 		"accepttos":    {"on"},
 		"companyname":  {},
 	}
-	c := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
+	c := &http.Client{}
 	req, err := http.NewRequest("POST", "https://my.buy-iptv.com/register.php",
 		strings.NewReader(data.Encode()))
 
@@ -150,10 +132,11 @@ func register(email string, captcha string, token string, cookie string) (err er
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusFound {
+	if resp.Request.URL.Path != "/clientarea.php" {
 		return errors.New("unable to create account: " +
-			"http status should equal 302, however it is : " + resp.Status)
+			"the request redirected to  : " + resp.Request.RequestURI)
 	}
+
 	return nil
 }
 
@@ -179,22 +162,4 @@ func readCaptcha(cookie string) (captcha string, err error) {
 	_ = client.SetImageFromBytes(bytes)
 	text, _ := client.Text()
 	return text[:5], nil
-}
-
-func login(email string, password string, token string) (string, error) {
-	resp, err := http.PostForm("https://my.buy-iptv.com/dologin.php", url.Values{
-		"token":    {token},
-		"username": {email},
-		"password": {password},
-	})
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusFound {
-		return "", errors.New("login failed, should return 302, however it returns: " + resp.Status)
-	}
-	cookie := strings.Join(textproto.MIMEHeader(resp.Header)["Set-Cookie"], ";")
-	return cookie, nil
 }
