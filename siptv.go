@@ -1,32 +1,42 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"github.com/chromedp/chromedp"
 	"log"
-	"net/url"
+	"strings"
 )
 
 func UpdateSmartTVApp(m3uURL string, macAddress string) error {
 
 	log.Println("update m3uURL of device with mac address: " + macAddress)
 
-	resp, err := call("POST", "https://siptv.app/scripts/up_url_only.php", url.Values{
-		"mac":           {macAddress},
-		"sel_countries": {"OSN"},
-		"sel_logos":     {"0"},
-		"detect_epg":    {"on"},
-		"lang":          {"en"},
-		"url1":          {m3uURL},
-		"epg1":          {""},
-		"pin":           {""},
-		"url_count":     {"1"},
-		"file_selected": {"0"},
-		"plist_order":   {"0"},
-	}, "")
+	ctx, cancel := chromedp.NewContext(context.Background())
+	defer cancel()
 
+	var res string
+
+	const macSel = `//*[@id="mac_file"]`
+	const urlSel = `//*[@id="1"]/input`
+
+	err := chromedp.Run(ctx, chromedp.Tasks{
+		chromedp.Navigate(`https://siptv.app/mylist/`),
+		chromedp.WaitVisible(macSel),
+		chromedp.SendKeys(macSel, macAddress),
+		chromedp.WaitVisible(urlSel),
+		chromedp.SendKeys(urlSel, m3uURL),
+		chromedp.Click(`//*[@id="url_table"]/tbody/tr[1]/td[6]/input[2]`),
+		chromedp.WaitVisible(`//*[@id="boxContent"]`),
+		chromedp.Text(`//*[@id="boxContent"]`, &res),
+	})
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+
+	if `Adding...` != strings.TrimSpace(res) {
+		return errors.New(res)
+	}
 
 	return nil
 }
