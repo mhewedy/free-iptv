@@ -6,13 +6,14 @@ import (
 	"github.com/chromedp/chromedp"
 	"log"
 	"strings"
+	"time"
 )
 
 func UpdateSmartTVApp(m3uURL string, macAddress string) error {
 
 	log.Println("update m3uURL of device with mac address: " + macAddress)
 
-	ctx, cancel := chromedp.NewContext(context.Background())
+	ctx, cancel := chromedp.NewContext(context.Background() /*chromedp.WithDebugf(log.Printf)*/)
 	defer cancel()
 
 	var res string
@@ -28,13 +29,14 @@ func UpdateSmartTVApp(m3uURL string, macAddress string) error {
 		chromedp.SendKeys(urlSel, m3uURL),
 		chromedp.Click(`//*[@id="url_table"]/tbody/tr[1]/td[6]/input[2]`),
 		chromedp.WaitVisible(`//*[@id="boxContent"]`),
+		chromedp.Sleep(1 * time.Second),
 		chromedp.Text(`//*[@id="boxContent"]`, &res),
 	})
 	if err != nil {
 		return err
 	}
 
-	if `Adding...` != strings.TrimSpace(res) {
+	if `1 URL added! Restart the App.` != strings.TrimSpace(res) {
 		return errors.New(res)
 	}
 
